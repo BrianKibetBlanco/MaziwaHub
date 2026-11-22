@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaziwaHub Farmer Portal</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f4f6f8;
+        }
+
+        h2 {
+            color: #176b3a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #176b3a;
+            color: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 15px 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>MaziwaHub Farmer Portal</h2>
+    <p>Farmer Number: F012</p>
+
+    <p id="message">Loading deliveries...</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Delivery ID</th>
+                <th>Date</th>
+                <th>Litres</th>
+                <th>Rate</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+
+        <tbody id="deliveryTable"></tbody>
+    </table>
+
+    <button id="previous">Previous</button>
+    <span id="pageNumber">Page 1</span>
+    <button id="next">Next</button>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        const farmerNo = 'F012';
+        const token = localStorage.getItem('token');
+
+        let page = 1;
+        const limit = 5;
+
+        async function loadDeliveries() {
+
+            const message = document.getElementById('message');
+            const table = document.getElementById('deliveryTable');
+
+            if (!token) {
+                message.textContent = 'Please log in first.';
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/farmers/${farmerNo}/deliveries?page=${page}&limit=${limit}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Unable to load deliveries');
+                }
+
+                table.innerHTML = '';
+
+                data.deliveries.forEach(delivery => {
+                    const row = document.createElement('tr');
+
+                    [
+                        delivery.DeliveryID,
+                        delivery.Date,
+                        delivery.Litres,
+                        delivery.Rate,
+                        delivery.Amount
+                    ].forEach(value => {
+                        const cell = document.createElement('td');
+                        cell.textContent = value;
+                        row.appendChild(cell);
+                    });
+
+                    table.appendChild(row);
+                });
+
+                message.textContent =
+                    `Showing ${data.deliveries.length} deliveries`;
+
+                document.getElementById('pageNumber').textContent =
+                    `Page ${page}`;
+
+                document.getElementById('previous').disabled =
+                    page === 1;
+
+                document.getElementById('next').disabled =
+                    data.deliveries.length < limit;
+
+            } catch (error) {
+                message.textContent = error.message;
+            }
+        }
+
+        document.getElementById('previous').onclick = () => {
+            if (page > 1) {
+                page--;
+                loadDeliveries();
+            }
+        };
+
+        document.getElementById('next').onclick = () => {
+            page++;
+            loadDeliveries();
+        };
+
+        loadDeliveries();
+    </script>
+
+</body>
+</html>
